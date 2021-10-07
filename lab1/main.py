@@ -1,4 +1,3 @@
-import copy
 import re
 import pandas
 from matplotlib import pyplot as plt
@@ -46,21 +45,31 @@ def get_average(words_freq: dict) -> int:
     return summary / sum(words_freq.values())
 
 
-def process_count_sizes_of_word(data: list, category: str):
+def process_count_sizes_of_word(data: list, color) -> float:
     count_of_word_sizes = count_string_sizes_frequency(data)
     average = get_average(count_of_word_sizes)
-    gist(count_of_word_sizes.keys(), count_of_word_sizes.values(),
-         'word sizes', 'count of words', f'word sizes count: {category}', average)
+    values = list(count_of_word_sizes.values())
+    minimum = min(values)
+    maximum = max(values)
+    for i in range(len(values)):
+        values[i] = (values[i] - minimum) / (maximum - minimum)
+    plots[0, 0].bar(count_of_word_sizes.keys(), values, color=color, alpha=0.5)
+    return average
 
 
-def process_count_of_message_length(rows: list, category: str):
+def process_count_of_message_length(rows: list, color) -> float:
     messages = []
     for row in rows:
         messages.append(re.sub(r'\s+', ' ', row).strip())
     count_of_massages_sizes = count_string_sizes_frequency(messages)
     average = get_average(count_of_massages_sizes)
-    gist(count_of_massages_sizes.keys(), count_of_massages_sizes.values(),
-         'message sizes', 'count of messages', f'messages sizes count: {category}', average)
+    values = list(count_of_massages_sizes.values())
+    minimum = min(values)
+    maximum = max(values)
+    for i in range(len(values)):
+        values[i] = (values[i] - minimum) / (maximum - minimum)
+    plots[0, 1].bar(count_of_massages_sizes.keys(), values, color=color, alpha=0.5)
+    return average
 
 
 def get_most_frequent_words(words_dictionary: dict, count: int) -> list:
@@ -69,32 +78,15 @@ def get_most_frequent_words(words_dictionary: dict, count: int) -> list:
     return frequencies
 
 
-def process_most_frequent_words(words_dictionary: dict, count: int, category: str):
+def process_most_frequent_words(words_dictionary: dict, count: int, plt_num: int):
     most_freq = get_most_frequent_words(words_dictionary, count)
     most_freq_dict = {cortege[0]: cortege[1] for cortege in most_freq}
-    gist(most_freq_dict.keys(), most_freq_dict.values(),
-         'words', 'frequency', f'words biggest frequency: {category}')
-
-
-def gist(x_values, y_values, x_label, y_label, title, average=None):
-    plt.figure(figsize=(10, 5))
-    plt.bar(x_values, y_values)
-    if average is not None:
-        plt.axvline(x=average, c='red')
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    plt.title(title)
-    plt.show()
-
-
-def process(rows: list, category: str):
-    words = split_rows(rows)
-    freqs = count_words(words)
-    write_frequencies_to_csv(freqs, f'output\\{category}.csv')
-    words = list(freqs.keys())
-    process_count_sizes_of_word(words, category)
-    process_count_of_message_length(rows, category)
-    process_most_frequent_words(freqs, 20, category)
+    values = list(most_freq_dict.values())
+    minimum = min(values)
+    maximum = max(values)
+    for i in range(len(values)):
+        values[i] = (values[i] - minimum) / (maximum - minimum)
+    plots[1, plt_num - 1].bar(most_freq_dict.keys(), values)
 
 
 stop_words = set(stopwords.words('English'))
@@ -117,5 +109,43 @@ for i in range(table.v1.size):
     else:
         ham_rows.append(table.v2[i])
 
-process(spam_rows, 'spam')
-process(ham_rows, 'ham')
+spam_words = split_rows(spam_rows)
+ham_words = split_rows(ham_rows)
+spam_freqs = count_words(spam_words)
+ham_freqs = count_words(ham_words)
+write_frequencies_to_csv(spam_freqs, 'output\\spam.csv')
+write_frequencies_to_csv(ham_freqs, 'output\\ham.csv')
+spam_words = list(spam_freqs.keys())
+ham_words = list(ham_freqs.keys())
+
+_, plots = plt.subplots(2, 2)
+
+spam_average = process_count_sizes_of_word(spam_words, 'blue')
+ham_average = process_count_sizes_of_word(ham_words, 'green')
+plots[0, 0].axvline(x=(spam_average + ham_average) / 2, c='red')
+plots[0, 0].legend(['average count', 'spam', 'ham'])
+plots[0, 0].set_xlabel('word sizes')
+plots[0, 0].set_ylabel('count of words')
+
+
+spam_average = process_count_of_message_length(spam_rows, 'blue')
+ham_average = process_count_of_message_length(ham_rows, 'green')
+plots[0, 1].axvline(x=(spam_average + ham_average) / 2, c='red')
+plots[0, 1].legend(['average count', 'spam', 'ham'])
+plots[0, 1].set_xlabel('message sizes')
+plots[0, 1].set_ylabel('count of messages')
+
+process_most_frequent_words(spam_freqs, 20, 1)
+plots[1, 0].legend(['spam'])
+plots[1, 0].set_xlabel('words')
+plots[1, 0].set_ylabel('frequency')
+
+process_most_frequent_words(ham_freqs, 20, 2)
+plots[1, 1].legend(['ham'])
+plots[1, 1].set_xlabel('words')
+plots[1, 1].set_ylabel('frequency')
+
+plt.setp(plots[1, 0].get_xticklabels(), rotation=45, ha='right', rotation_mode='anchor')
+plt.setp(plots[1, 1].get_xticklabels(), rotation=45, ha='right', rotation_mode='anchor')
+plt.get_current_fig_manager().window.state('zoomed')
+plt.show()
