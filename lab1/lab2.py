@@ -1,3 +1,4 @@
+import math
 import re
 import pandas
 from nltk.corpus import stopwords
@@ -40,8 +41,8 @@ def count_word_not_in_category(words: list, category: dict):
     return counter
 
 
-def tested_message_in_category_probability(message_words: list, category_words: dict, category_size: int, extra_count: list) -> float:
-    probability = 1
+def tested_message_in_category_probability(message_words: list, category_words: dict, category_size: int) -> float:
+    probability = 0
     count_of_words_not_in_category = count_word_not_in_category(message_words, category_words)
     for word in message_words:
         count = category_words.get(word)
@@ -50,9 +51,7 @@ def tested_message_in_category_probability(message_words: list, category_words: 
         if count_of_words_not_in_category > 0:
             count += 1
         word_probability = count / (category_size + count_of_words_not_in_category)
-        print(f'{word} has {count} / {category_size + count_of_words_not_in_category} = {word_probability}')
-        extra_count[0] += count
-        probability *= word_probability
+        probability += math.log(word_probability)
     return probability
 
 
@@ -85,21 +84,30 @@ testing_message_words = split_rows([testing_message])
 spam_freqs = count_words(spam_words)
 ham_freqs = count_words(ham_words)
 
-sup_count = 0
-arr = [sup_count]
 testing_message_spam_probability = \
-    spam_probability * tested_message_in_category_probability(testing_message_words, spam_freqs, len(spam_words), arr)
-print(f'{arr[0]} / {len(spam_words)}')
-arr[0] = 0
-testing_message_ham_probability = \
-    ham_probability * tested_message_in_category_probability(testing_message_words, ham_freqs, len(ham_words), arr)
-print(f'{arr[0]} / {len(ham_words)}')
-testing_message_spam_probability = \
-    testing_message_spam_probability / ((testing_message_spam_probability + testing_message_ham_probability)*100)
+    math.log(spam_probability) + \
+    tested_message_in_category_probability(testing_message_words, spam_freqs, len(spam_words))
 
 testing_message_ham_probability = \
-    testing_message_ham_probability / ((testing_message_spam_probability + testing_message_ham_probability)*100)
+    math.log(ham_probability) + \
+    tested_message_in_category_probability(testing_message_words, ham_freqs, len(ham_words))
 
-print(testing_message_spam_probability)
-print(testing_message_ham_probability)
+# backward potentiating
+testing_message_spam_probability = math.e ** testing_message_spam_probability
+testing_message_ham_probability = math.e ** testing_message_ham_probability
 
+# normalizing
+normaled_testing_message_spam_probability = \
+    testing_message_spam_probability / (testing_message_spam_probability + testing_message_ham_probability)
+
+normaled_testing_message_ham_probability = \
+    testing_message_ham_probability / (testing_message_spam_probability + testing_message_ham_probability)
+
+print(normaled_testing_message_spam_probability)
+print(normaled_testing_message_ham_probability)
+result = ''
+if normaled_testing_message_spam_probability > normaled_testing_message_ham_probability:
+    result = 'spam'
+else:
+    result = 'ham'
+print('message is '+result)
