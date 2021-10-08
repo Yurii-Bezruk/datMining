@@ -11,7 +11,6 @@ def split_rows(rows: list) -> list:
     return arr
 
 
-
 def _filter(messages):
     for i in range(len(messages)):
         messages[i] = re.sub(r'\s', ' ', re.sub(r'([^\w\s]|\d|_)+', ' ', messages[i]).lower())
@@ -33,12 +32,36 @@ def count_words(words: list) -> dict:
     return dictionary
 
 
+def count_word_not_in_category(words: list, category: dict):
+    counter = 0
+    for word in words:
+        if word in category.keys():
+            counter += 1
+    return counter
+
+
+def tested_message_in_category_probability(message_words: list, category_words: dict, category_size: int, extra_count: list) -> float:
+    probability = 1
+    count_of_words_not_in_category = count_word_not_in_category(message_words, category_words)
+    for word in message_words:
+        count = category_words.get(word)
+        if count is None:
+            count = 0
+        if count_of_words_not_in_category > 0:
+            count += 1
+        word_probability = count / (category_size + count_of_words_not_in_category)
+        print(f'{word} has {count} / {category_size + count_of_words_not_in_category} = {word_probability}')
+        extra_count[0] += count
+        probability *= word_probability
+    return probability
+
+
 # global objects using for filtering. Instantiating their only once
 stop_words = set(stopwords.words('English'))
 stemmer = PorterStemmer()
-
 table = pandas.read_csv(filepath_or_buffer='sms-spam-corpus.csv', encoding='1251')
 data = _filter(table.v2)
+testing_message = _filter([input()])[0]
 
 spam_rows = []
 ham_rows = []
@@ -52,13 +75,31 @@ spam_messages_count = len(spam_rows)
 ham_messages_count = len(ham_rows)
 all_messages_count = spam_messages_count + ham_messages_count
 
+spam_probability = spam_messages_count / all_messages_count
+ham_probability = ham_messages_count / all_messages_count
+
 spam_words = split_rows(spam_rows)
 ham_words = split_rows(ham_rows)
+testing_message_words = split_rows([testing_message])
 
 spam_freqs = count_words(spam_words)
 ham_freqs = count_words(ham_words)
 
-spam_probability = spam_messages_count / all_messages_count
-ham_probability = ham_messages_count / all_messages_count
+sup_count = 0
+arr = [sup_count]
+testing_message_spam_probability = \
+    spam_probability * tested_message_in_category_probability(testing_message_words, spam_freqs, len(spam_words), arr)
+print(f'{arr[0]} / {len(spam_words)}')
+arr[0] = 0
+testing_message_ham_probability = \
+    ham_probability * tested_message_in_category_probability(testing_message_words, ham_freqs, len(ham_words), arr)
+print(f'{arr[0]} / {len(ham_words)}')
+testing_message_spam_probability = \
+    testing_message_spam_probability / ((testing_message_spam_probability + testing_message_ham_probability)*100)
 
-print(spam_rows)
+testing_message_ham_probability = \
+    testing_message_ham_probability / ((testing_message_spam_probability + testing_message_ham_probability)*100)
+
+print(testing_message_spam_probability)
+print(testing_message_ham_probability)
+
