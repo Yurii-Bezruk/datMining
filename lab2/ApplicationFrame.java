@@ -23,6 +23,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.border.Border;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 
 public final class ApplicationFrame extends JFrame {
@@ -64,6 +65,8 @@ public final class ApplicationFrame extends JFrame {
 		setContentPane(contentPane);
 				
 		fileChooser = new JFileChooser(new File(System.getProperty("user.dir")));
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("CSV Files", "csv");
+		fileChooser.setFileFilter(filter);
 		Border border = BorderFactory.createLineBorder(Color.GRAY);
 		
 		JLabel fileLabel = new JLabel("Choose learning file: ");
@@ -122,7 +125,6 @@ public final class ApplicationFrame extends JFrame {
 					return;
 				}
 		        Runtime runtime = Runtime.getRuntime();
-		        System.out.println(filename);
 		        Process process = runtime.exec(String.format("py bayesian_classifier.py --file \"%s\" --message \"%s\"", filename, message));
 
 		        List<String> output = getProcessStreamData(process.getInputStream());
