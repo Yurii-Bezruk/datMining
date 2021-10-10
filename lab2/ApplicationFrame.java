@@ -6,6 +6,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +40,8 @@ public final class ApplicationFrame extends JFrame {
 	public ApplicationFrame() {
 		setTitle("Bayesian naive classifier");
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
-		setBounds(150, 150, 550, 350);		
+		setBounds(150, 150, 550, 350);
+		setResizable(false);
 		contentPane = new JPanel();
 		
 		GridBagLayout layout = new GridBagLayout();
@@ -56,8 +59,7 @@ public final class ApplicationFrame extends JFrame {
 		constraints.ipadx = 0;
 		constraints.ipady = 0;
 		constraints.weightx = 1;
-		constraints.weighty = 1;
-		
+		constraints.weighty = 1;		
 		
 		setContentPane(contentPane);
 				
@@ -122,19 +124,12 @@ public final class ApplicationFrame extends JFrame {
 		        Runtime runtime = Runtime.getRuntime();
 		        System.out.println(filename);
 		        Process process = runtime.exec(String.format("py bayesian_classifier.py --file \"%s\" --message \"%s\"", filename, message));
-		        BufferedReader input = new BufferedReader(new InputStreamReader(process.getInputStream()));
-		        BufferedReader error = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-		        List<String> output = new ArrayList<>();
-		        List<String> stackTrace = new ArrayList<>();
-		        String next = null;
-		        while((next = input.readLine()) != null) {
-					output.add(next);
-				}
-		        while((next = error.readLine()) != null) {
-		        	stackTrace.add(next);
-				}
+
+		        List<String> output = getProcessStreamData(process.getInputStream());
+		        List<String> stackTrace = getProcessStreamData(process.getErrorStream());
 
 		        int exitVal = process.waitFor();
+		        
 		        if(exitVal != 0) {
 		        	for (String string : stackTrace) {
 						System.err.println(string);
@@ -155,11 +150,18 @@ public final class ApplicationFrame extends JFrame {
 		        System.out.println("Exited with error code "+exitVal);
 		    } catch(Exception e) {
 		    	e.printStackTrace();
-		    }
-			
+		    }			
+		}
+		private List<String> getProcessStreamData(InputStream data) throws IOException{
+			BufferedReader input = new BufferedReader(new InputStreamReader(data));
+	        List<String> output = new ArrayList<>();
+	        String next = null;
+	        while((next = input.readLine()) != null) {
+				output.add(next);
+			}
+	        return output;
 		}
 	}
-	
 	public static void main(String[] args) {
 		new ApplicationFrame();
 	}
