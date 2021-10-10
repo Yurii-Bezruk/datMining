@@ -66,7 +66,6 @@ def tested_message_in_category_probability(message_words: list, category_words: 
         if count_of_words_not_in_category > 0:
             count += 1
         word_probability = count / (category_size + count_of_words_not_in_category)
-        # print(word_probability)
         probability += math.log(word_probability)
     return probability
 
@@ -74,8 +73,6 @@ def tested_message_in_category_probability(message_words: list, category_words: 
 # global objects using for filtering. Instantiating their only once
 
 filename, message = parse_args()
-# print(filename)
-# print(message)
 stop_words = set(stopwords.words('English'))
 stemmer = PorterStemmer()
 table = pandas.read_csv(filepath_or_buffer=filename, encoding='1251')
