@@ -28,11 +28,11 @@ class Cluster:
 
     def add(self, _point: Point):
         self.points.append(_point)
-        self.refresh_center()
+        # self.refresh_center()
 
     def remove(self, _point: Point):
         self.points.remove(_point)
-        self.refresh_center()
+        # self.refresh_center()
 
     def clear(self):
         self.points.clear()
@@ -53,7 +53,7 @@ def load_points(_filename: str) -> List[Point]:
             break
         line = line.strip().split(" ")
         _points.append(Point(int(line[0]), int(line[-1])))
-        counter += 1
+        # counter += 1
     return _points
 
 
@@ -63,8 +63,9 @@ def cluster_iterations(_cluster_count: int, _points: List[Point]):
     for i in range(1, _cluster_count + 1):
         _clusters = random_clusters(i, points)
         match_to_clusters(points, _clusters)
-        re_clustering(_clusters)
+        re_clustering(points, _clusters)
         deviations.append(total_square_deviation(_clusters))
+        print(f'cluster {i}')
     view_clusters(_clusters)
     view_deviations(deviations)
 
@@ -94,20 +95,29 @@ def match_to_clusters(_points: List[Point], _clusters: List[Cluster]):
         min_distance_cluster.add(_point)
 
 
-def re_clustering(_clusters: List[Cluster]):
+def re_clustering(_points: List[Point], _clusters: List[Cluster]):
     moved: bool = True
     while moved:
         moved = False
         for _cluster in _clusters:
-            for _point in _cluster.points:
-                min_distance_cluster = min(_clusters, key=lambda _cluster: euclid_distance(_point, _cluster.center))
-                if min_distance_cluster != _cluster:
-                    _cluster.remove(_point)
-                    min_distance_cluster.add(_point)
-                    moved = True
+            center = _cluster.center
+            _cluster.refresh_center()
+            if center != _cluster.center:
+                moved = True
+        if moved:
+            for _cluster in _clusters:
+                _cluster.clear()
+            match_to_clusters(_points, _clusters)
+
+            # for _point in _cluster.points:
+            #     min_distance_cluster = min(_clusters, key=lambda _cluster: euclid_distance(_point, _cluster.center))
+            #     if min_distance_cluster != _cluster:
+            #         _cluster.remove(_point)
+            #         min_distance_cluster.add(_point)
+            #         moved = True
 
 
-def total_square_deviation(_clusters: List[Cluster]) -> int:
+def total_square_deviation(_clusters: List[Cluster]) -> float:
     deviation = 0
     for _cluster in _clusters:
         for _point in _cluster.points:
